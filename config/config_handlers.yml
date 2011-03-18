@@ -1,0 +1,2 @@
+modules/*/config/pageflow.yml:
+  class:    sfSimpleYamlConfigHandler

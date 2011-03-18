@@ -1,0 +1,114 @@
+= sfPageFlowPlugin plugin =
+
+The `sfPageFlowPlugin` plugin controlls complicated page flow.
+
+== Installation ==
+
+  * Install the plugin
+  Download tar-ball and extract it under plugins/ of your project.
+
+  * Clear you cache
+
+  {{{
+    symfony cc
+  }}}
+
+  * You're done.
+
+== Classes ==
+   The plugin contains two classes.
+   * sfPageFlow
+   * sfPageFlowAction
+
+== Usage ==
+
+  * pageflow design
+  [[Image(fsm.png)]]
+
+  Create `pageflow.yml` in your module's config directory.
+  {{{
+      firstState: ProcessInitialize
+      lastState: DisplayResult
+      state:
+        DisplayForm:
+          transition:
+            doInput: ProcessValidate
+        DisplayConfirm:
+          transition:
+            doConfirm: ProcessSubmit
+            doCancel:  ProcessSetup
+        DisplayResult:
+        ProcessInitialize:
+          transition:
+            onSuccess: ProcessSetup
+        ProcessSetup:
+          transition:
+            onSuccess: DisplayForm
+        ProcessValidate:
+          entry:
+            - acceptRequests:
+              params: [name, title, body]
+          transition:
+            onSuccess: DisplayConfirm
+            onError:   DisplayForm
+        ProcessSubmit:
+          transition:
+            onSuccess: DisplayResult
+  }}}
+
+  * implements action
+   In your action, you would do the following:
+    {{{
+      <?php
+      class sampleActions extends sfPageFlowActions
+      {
+	  // Action States
+	  // handle ProcessInitialize
+          public function executeInitialize(){
+              $this->flow->clearData();
+              $this->flow->transitOnSuccess();
+              return $this->flow->execute();
+          }
+
+	  // handle ProcessSetup
+          public function executeSetup(){
+              $this->flow->transitOnSuccess();
+              return $this->flow->execute();
+          }
+
+          public function executeValidate(){
+              $this->flow->transitOnSuccess();
+              return $this->flow->execute();
+          }      
+          public function executeSubmit(){
+	      // process data
+              $this->flow->transitOnSuccess();
+              return $this->flow->execute();
+          }
+      }
+  }}}
+
+  * setup routing 
+  Set `flow` action to default of `sample` module. 
+  {{{
+      sample:
+        url:   /sample/:sf_pageflow_status/:sf_pageflow_ticket/*
+        param: { module: sample, action: flow, sf_pageflow_status: form, sf_pageflow_ticket: new}
+  }}}
+  
+  * templates
+  Create templates named displayForm.php,displayConfirm.php and displayResult.php.
+
+  sample code as follows:
+
+     * fill-in input tag
+  {{{
+      <?php echo input_tag('name',$flow->getData('name')) ?>
+  }}}
+
+     * event for page transition.
+  {{{
+      <?php echo input_hidden_tag('pageflow_event','doInput') ?>
+        or
+      <?php echo link_to('back',"@sample?pageflow_event=doCancel")?>
+  }}}
